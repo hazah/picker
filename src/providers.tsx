@@ -17,6 +17,10 @@ import {
   ResourceContext,
   matchResourceFromRoute,
   ParseResponse,
+  AuditLogProvider,
+  BaseKey,
+  LogParams,
+  HttpError,
 } from "@refinedev/core";
 import {
   Link,
@@ -27,11 +31,7 @@ import {
   AnyPathParams,
   matchPathname,
 } from "@tanstack/react-router";
-import {
-  useCallback,
-  useContext,
-  useMemo,
-} from "react";
+import { useCallback, useContext, useMemo } from "react";
 import database from "./database";
 
 const dataProvider: DataProvider = {
@@ -39,36 +39,100 @@ const dataProvider: DataProvider = {
     params: GetListParams
   ): Promise<GetListResponse<TData>> {
     console.log("getList", params);
-    const data = await database.rel.find(params.resource);
-    console.log("data", data);
-    return {
-      data: data.tasks,
-      total: data.tasks.length,
-    };
+    try {
+      const data = await database.rel.find(params.resource);
+      console.log("data", data);
+      return {
+        data: data[params.resource] || [],
+        total: data[params.resource]?.length || 0,
+      };
+    } catch (e: any) {
+      console.error("exception", e);
+      const error: HttpError = {
+        message: e?.message || "An error occurred",
+        statusCode: e?.status || 500,
+      };
+      return error as any;
+    }
   },
-  getOne: function <TData extends BaseRecord = BaseRecord>(
+  getOne: async <TData extends BaseRecord = BaseRecord>(
     params: GetOneParams
-  ): Promise<GetOneResponse<TData>> {
+  ): Promise<GetOneResponse<TData>> => {
     console.log("getOne", params);
-    throw new Error("Function not implemented.");
+    try {
+      const data = await database.rel.find(params.resource, params.id);
+      return {
+        data: data[params.resource][0],
+      };
+    } catch (e: any) {
+      console.error("exception", e);
+      const error: HttpError = {
+        message: e?.message || "An error occurred",
+        statusCode: e?.status || 500,
+      };
+      return error as any;
+    }
   },
-  create: function <TData extends BaseRecord = BaseRecord, TVariables = {}>(
+  create: async <TData extends BaseRecord = BaseRecord, TVariables = {}>(
     params: CreateParams<TVariables>
-  ): Promise<CreateResponse<TData>> {
+  ): Promise<CreateResponse<TData>> => {
     console.log("create", params);
-    throw new Error("Function not implemented.");
+    try {
+      const { id } = await database.rel.save(params.resource, params.variables);
+      console.log("id", id);
+      const data = await database.rel.find(params.resource, id);
+      return {
+        data: data[params.resource][0],
+      };
+    } catch (e: any) {
+      console.error("exception", e);
+      const error: HttpError = {
+        message: e?.message || "An error occurred",
+        statusCode: e?.status || 500,
+      };
+      return error as any;
+    }
   },
-  update: function <TData extends BaseRecord = BaseRecord, TVariables = {}>(
+  update: async <TData extends BaseRecord = BaseRecord, TVariables = {}>(
     params: UpdateParams<TVariables>
-  ): Promise<UpdateResponse<TData>> {
+  ): Promise<UpdateResponse<TData>> => {
     console.log("update", params);
-    throw new Error("Function not implemented.");
+    try {
+      await database.rel.save(params.resource, {
+        ...params.variables,
+        id: params.id,
+      });
+      const data = await database.rel.find(params.resource, params.id);
+      return {
+        data: data[params.resource][0],
+      };
+    } catch (e: any) {
+      console.error("exception", e);
+      const error: HttpError = {
+        message: e?.message || "An error occurred",
+        statusCode: e?.status || 500,
+      };
+      return error as any;
+    }
   },
-  deleteOne: function <TData extends BaseRecord = BaseRecord, TVariables = {}>(
+  deleteOne: async <TData extends BaseRecord = BaseRecord, TVariables = {}>(
     params: DeleteOneParams<TVariables>
-  ): Promise<DeleteOneResponse<TData>> {
+  ): Promise<DeleteOneResponse<TData>> => {
     console.log("deleteOne", params);
-    throw new Error("Function not implemented.");
+    try {
+      const data = await database.rel.find(params.resource, params.id);
+      await database.rel.del(params.resource, data[params.resource][0]);
+      return {
+        data: data[params.resource][0],
+      };
+    } catch (e: any) {
+      console.error("exception", e);
+      const error: HttpError = {
+        message: e?.message || "An error occurred",
+        statusCode: e?.status || 500,
+      };
+      return error as any;
+    }
   },
   getApiUrl: function (): string {
     throw new Error("Function not implemented.");
@@ -191,4 +255,14 @@ const routerBindings: RouterBindings = {
   Link,
 };
 
-export { dataProvider, routerBindings };
+const auditLogProvider: AuditLogProvider = {
+  get: async (params) => {},
+  create: async (params: LogParams): Promise<any> => {},
+  update: async (params: {
+    [key: string]: any;
+    id: BaseKey;
+    name: string;
+  }): Promise<any> => {},
+};
+
+export { dataProvider, routerBindings, auditLogProvider };

@@ -10,22 +10,18 @@ const database = Database.setSchema([
     singular: "task",
     plural: "tasks",
   },
+  {
+    singular: "slot",
+    plural: "slots",
+  },
+  {
+    singular: "unavailability",
+    plural: "unavailabilities",
+  },
+  {
+    singular: "scheduled",
+    plural: "scheduled",
+  },
 ]);
-
-(async function () {
-  if ((await database.rel.find("task")).tasks.length === 0) {
-    await database.rel.save("task", {
-      id: "1",
-      title: "Task #1",
-    });
-
-    await database.rel.save("task", {
-      id: "2",
-      title: "Task #2",
-    });
-
-    console.log("Database seeded");
-  }
-})();
 
 export default database;
