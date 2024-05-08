@@ -256,13 +256,19 @@ const routerBindings: RouterBindings = {
 };
 
 const auditLogProvider: AuditLogProvider = {
-  get: async (params) => {},
-  create: async (params: LogParams): Promise<any> => {},
+  get: async (params) => {
+    console.log("get", params);
+  },
+  create: async (params: LogParams): Promise<any> => {
+    console.log("create", params);
+  },
   update: async (params: {
     [key: string]: any;
     id: BaseKey;
     name: string;
-  }): Promise<any> => {},
+  }): Promise<any> => {
+    console.log("update", params);
+  },
 };
 
 export { dataProvider, routerBindings, auditLogProvider };
